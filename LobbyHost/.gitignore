@@ -1,0 +1,32 @@
+# This file is used to ignore game-generated and build files
+
+# Directories
+/Library/
+/Temp/
+/obj/
+/Build/
+/Builds/
+/UserSettings/
+/ProfilerCaptures/
+/MemoryCaptures/
+/.vscode/
+/.idea/
+
+# Logs
+/Logs/
+*.log
+
+# Generated files
+*.meta
+.DS_Store
+.vsconfig
+
+# Rider
+/.idea/
+*.DotSettings.user
+
+# Visual Studio cache
+.vs/
+
+# Gradle
+.gradle/
