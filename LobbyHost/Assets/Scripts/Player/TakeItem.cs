@@ -17,6 +17,7 @@ public class TakeItem : NetworkBehaviour // Utiliser NetworkBehaviour au lieu de
     private InputAction trajectoryAction;
     private bool isTrajectoryActive;
     private TakableItem carriedItem;
+    private NetworkTransformTest movementController;
 
     [Header("ThrowItem")]
     [SerializeField] private LineRenderer lineRenderer;
@@ -31,6 +32,11 @@ public class TakeItem : NetworkBehaviour // Utiliser NetworkBehaviour au lieu de
     private float timeBetweenPoints = 0.1f;
 
     // --- INITIALISATION ---
+
+    private void Awake()
+    {
+        movementController = GetComponent<NetworkTransformTest>();
+    }
 
     public override void OnNetworkSpawn()
     {
@@ -65,6 +71,7 @@ public class TakeItem : NetworkBehaviour // Utiliser NetworkBehaviour au lieu de
         }
 
         isTrajectoryActive = false;
+        ApplyCarryMass(0f);
         if (lineRenderer != null)
         {
             lineRenderer.enabled = false;
@@ -164,25 +171,34 @@ public class TakeItem : NetworkBehaviour // Utiliser NetworkBehaviour au lieu de
     {
         carriedItem = item;
         item.isTaken = true;
+        item.SetHeldState(true);
 
         NetworkObject itemNetObj = item.GetComponent<NetworkObject>();
         // On prend le transform du script actuel (qui est sur la racine du joueur avec le NetworkObject)
         Transform playerRoot = this.transform;
 
-        // On utilise playerRoot au lieu de itemSpot
-        itemNetObj.TrySetParent(playerRoot, false);
-
-        item.transform.position = itemSpot.position;
-        item.transform.rotation = itemSpot.rotation;
-
         Rigidbody rb = item.GetComponent<Rigidbody>();
         if (rb != null)
         {
+            rb.mass = item.mass;
+            rb.mass = item.mass; // Appliquer la masse de l'objet
             rb.isKinematic = true;
             rb.useGravity = false;
             rb.linearVelocity = Vector3.zero;
             rb.angularVelocity = Vector3.zero;
         }
+
+        // Place d'abord l'objet en main en world-space, puis parente en conservant la pose world.
+        item.transform.SetPositionAndRotation(itemSpot.position, itemSpot.rotation);
+
+        // On utilise playerRoot au lieu de itemSpot
+        itemNetObj.TrySetParent(playerRoot, true);
+
+        // Ajuste l'ancrage local pour qu'il colle exactement au point de main.
+        item.transform.localPosition = playerRoot.InverseTransformPoint(itemSpot.position);
+        item.transform.localRotation = Quaternion.Inverse(playerRoot.rotation) * itemSpot.rotation;
+
+        ApplyCarryMass(item.mass);
 
         NotifyClientPickupClientRpc(itemNetObj.NetworkObjectId);
     }
@@ -195,7 +211,7 @@ public class TakeItem : NetworkBehaviour // Utiliser NetworkBehaviour au lieu de
         if (carriedItem == null) return;
 
         // On retire le parent
-        carriedItem.GetComponent<NetworkObject>().TryRemoveParent(false);
+        carriedItem.GetComponent<NetworkObject>().TryRemoveParent(true);
 
         Rigidbody rb = carriedItem.GetComponent<Rigidbody>();
         if (rb != null)
@@ -203,9 +219,11 @@ public class TakeItem : NetworkBehaviour // Utiliser NetworkBehaviour au lieu de
             rb.isKinematic = false;
             rb.useGravity = true;
 
+            carriedItem.transform.SetPositionAndRotation(releasePosition.position, releasePosition.rotation);
+
             // CALCUL DU LANCER (Moving Out Style)
             // On prend l'avant du joueur + un peu de hauteur
-            Vector3 forceDir = transform.forward * throwStrength + Vector3.up * upwardForce;
+            Vector3 forceDir = releasePosition.forward * throwStrength + Vector3.up * upwardForce;
 
             rb.AddForce(forceDir, ForceMode.Impulse);
 
@@ -214,6 +232,8 @@ public class TakeItem : NetworkBehaviour // Utiliser NetworkBehaviour au lieu de
         }
 
         carriedItem.isTaken = false;
+        carriedItem.SetHeldState(false);
+        ApplyCarryMass(0f);
         NotifyClientDropClientRpc();
         carriedItem = null;
     }
@@ -225,14 +245,31 @@ public class TakeItem : NetworkBehaviour // Utiliser NetworkBehaviour au lieu de
     {
         if (IsServer) return;
         if (NetworkManager.Singleton.SpawnManager.SpawnedObjects.TryGetValue(id, out NetworkObject obj))
+        {
             carriedItem = obj.GetComponent<TakableItem>();
+            if (carriedItem != null)
+            {
+                ApplyCarryMass(carriedItem.mass);
+            }
+        }
     }
 
     [ClientRpc]
     private void NotifyClientDropClientRpc()
     {
         if (IsServer) return;
+        ApplyCarryMass(0f);
         carriedItem = null;
+    }
+
+    private void ApplyCarryMass(float mass)
+    {
+        if (movementController == null)
+        {
+            return;
+        }
+
+        movementController.SetCarriedMass(mass);
     }
 
     private TakableItem FindNearestItem()

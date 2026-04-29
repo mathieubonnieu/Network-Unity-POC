@@ -60,7 +60,6 @@ public class MainMenuController : MonoBehaviour
                 "Add NetworkObject to the prefab root before starting host.");
             return false;
         }
-
         return true;
     }
 

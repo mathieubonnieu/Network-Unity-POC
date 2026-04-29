@@ -303,6 +303,7 @@ GameObject:
   - component: {fileID: 433368550355446267}
   - component: {fileID: 8152493388189325807}
   - component: {fileID: 4985544119889257725}
+  - component: {fileID: 8613630858597134721}
   m_Layer: 0
   m_Name: Player
   m_TagString: Player
@@ -319,7 +320,7 @@ Transform:
   m_GameObject: {fileID: 8331982837131307431}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: -0.62897, y: 2.57077, z: 0}
+  m_LocalPosition: {x: 0, y: 2.5, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
@@ -417,7 +418,7 @@ CapsuleCollider:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 8331982837131307431}
-  m_Material: {fileID: 0}
+  m_Material: {fileID: 13400000, guid: e21fb6ff981dbcd4d9afa095427aeaea, type: 2}
   m_IncludeLayers:
     serializedVersion: 2
     m_Bits: 0
@@ -513,6 +514,9 @@ MonoBehaviour:
   moveSpeed: 4
   turnSpeed: 12
   inputActions: {fileID: -944628639613478452, guid: 052faaac586de48259a63d0c4782560b, type: 3}
+  carryMassSlowFactor: 0.12
+  minSpeedMultiplier: 0.45
+  playerContactMaterial: {fileID: 13400000, guid: e21fb6ff981dbcd4d9afa095427aeaea, type: 2}
 --- !u!114 &8152493388189325807
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -548,3 +552,30 @@ MonoBehaviour:
   releasePosition: {fileID: 8188754870221264764}
   linePoints: 25
   timeBetweenPoints: 0.1
+--- !u!54 &8613630858597134721
+Rigidbody:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8331982837131307431}
+  serializedVersion: 5
+  m_Mass: 1
+  m_LinearDamping: 0
+  m_AngularDamping: 0.05
+  m_CenterOfMass: {x: 0, y: 0, z: 0}
+  m_InertiaTensor: {x: 1, y: 1, z: 1}
+  m_InertiaRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ImplicitCom: 1
+  m_ImplicitTensor: 1
+  m_UseGravity: 1
+  m_IsKinematic: 0
+  m_Interpolate: 0
+  m_Constraints: 84
+  m_CollisionDetection: 0

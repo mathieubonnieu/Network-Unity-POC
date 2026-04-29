@@ -7,11 +7,26 @@ public class NetworkTransformTest : NetworkBehaviour
     [SerializeField] private float moveSpeed = 4f;
     [SerializeField] private float turnSpeed = 12f;
     [SerializeField] private InputActionAsset inputActions;
+    [SerializeField] private float carryMassSlowFactor = 0.12f;
+    [SerializeField] private float minSpeedMultiplier = 0.45f;
+    [SerializeField] private PhysicsMaterial playerContactMaterial;
 
     private InputAction moveAction;
+    private Rigidbody playerRigidbody;
+    private CapsuleCollider playerCollider;
+    private float carriedMass;
+    private Vector3 serverMoveDirection;
+
+    private void Awake()
+    {
+        playerRigidbody = GetComponent<Rigidbody>();
+        playerCollider = GetComponent<CapsuleCollider>();
+    }
 
     public override void OnNetworkSpawn()
     {
+        ConfigureRigidbody();
+
         if (!IsOwner)
         {
             return;
@@ -27,6 +42,26 @@ public class NetworkTransformTest : NetworkBehaviour
             moveAction.Disable();
             moveAction = null;
         }
+    }
+
+    private void ConfigureRigidbody()
+    {
+        if (playerRigidbody == null)
+        {
+            return;
+        }
+
+        SetupContactMaterial();
+    }
+
+    private void SetupContactMaterial()
+    {
+        if (playerCollider == null)
+        {
+            return;
+        }
+
+        playerCollider.material = playerContactMaterial;
     }
 
     private void InitializeInputAction()
@@ -50,22 +85,48 @@ public class NetworkTransformTest : NetworkBehaviour
 
         Vector2 moveInput = moveAction.ReadValue<Vector2>();
 
-        Vector3 inputDirection = new Vector3(moveInput.x, 0f, moveInput.y);
+        Vector3 inputDirection = new(moveInput.x, 0f, moveInput.y);
         if (inputDirection.sqrMagnitude < 0.001f)
         {
+            MovePlayerServerRpc(Vector3.zero);
             return;
         }
 
         MovePlayerServerRpc(inputDirection.normalized);
     }
 
+    private void FixedUpdate()
+    {
+        if (!IsServer || playerRigidbody == null || serverMoveDirection.sqrMagnitude < 0.0001f)
+        {
+            if (IsServer && playerRigidbody != null)
+            {
+                playerRigidbody.linearVelocity = Vector3.zero;
+            }
+
+            return;
+        }
+
+        Quaternion targetRotation = Quaternion.LookRotation(serverMoveDirection, Vector3.up);
+        playerRigidbody.MoveRotation(Quaternion.Slerp(playerRigidbody.rotation, targetRotation, turnSpeed * Time.fixedDeltaTime));
+
+        float speedMultiplier = 1f / (1f + carriedMass * carryMassSlowFactor);
+        speedMultiplier = Mathf.Max(minSpeedMultiplier, speedMultiplier);
+
+        Vector3 desiredVelocity = serverMoveDirection * (moveSpeed * speedMultiplier);
+        desiredVelocity.y = 0f;
+        playerRigidbody.MovePosition(playerRigidbody.position + desiredVelocity * Time.fixedDeltaTime);
+//        playerRigidbody.linearVelocity = desiredVelocity;
+    }
+
     [Rpc(SendTo.Server)]
     private void MovePlayerServerRpc(Vector3 direction, RpcParams rpcParams = default)
     {
-        Quaternion targetRotation = Quaternion.LookRotation(direction, Vector3.up);
-        transform.rotation = Quaternion.Slerp(transform.rotation, targetRotation, turnSpeed * Time.deltaTime);
+        serverMoveDirection = direction;
+    }
 
-        Vector3 movement = direction * moveSpeed * Time.deltaTime;
-        transform.position += movement;
+    public void SetCarriedMass(float mass)
+    {
+        carriedMass = Mathf.Max(0f, mass);
     }
 }

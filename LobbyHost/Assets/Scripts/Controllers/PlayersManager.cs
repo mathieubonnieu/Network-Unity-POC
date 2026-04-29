@@ -190,7 +190,6 @@ public class PlayersManager : NetworkBehaviour
     }
 
     // ---------- Lifecycle serveur ----------
-
     private void OnServerStarted()
     {
         if (!IsServer) return;
