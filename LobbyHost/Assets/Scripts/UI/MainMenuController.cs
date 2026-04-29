@@ -1,4 +1,3 @@
-using System;
 using Unity.Netcode;
 using UnityEngine;
 using UnityEngine.SceneManagement;
@@ -22,6 +21,26 @@ public class MainMenuController : MonoBehaviour
         else
         {
             Debug.LogError("Failed to start host");
+        }
+    }
+
+    public void StartJoin()
+    {
+        if (!CanStartNetwork("join"))
+        {
+            return;
+        }
+
+        PlayersManager.Instance?.ResetLobbyState();
+
+        if (NetworkManager.Singleton.StartClient())
+        {
+            Debug.Log("Join Success to start host");
+            NetworkManager.Singleton.SceneManager.LoadScene("Lobby", LoadSceneMode.Single);
+        }
+        else
+        {
+            Debug.LogError("Failed to start join");
         }
     }
 
@@ -63,23 +82,5 @@ public class MainMenuController : MonoBehaviour
         return true;
     }
 
-    public void StartJoin()
-    {
-        if (!CanStartNetwork("join"))
-        {
-            return;
-        }
-
-        PlayersManager.Instance?.ResetLobbyState();
-
-        if (NetworkManager.Singleton.StartClient())
-        {
-            Debug.Log("Join Success to start host");
-            NetworkManager.Singleton.SceneManager.LoadScene("Lobby", LoadSceneMode.Single);
-        }
-        else
-        {
-            Debug.LogError("Failed to start join");
-        }
-    }
+    
 }
