@@ -29,6 +29,12 @@ public class NetworkTransformTest : NetworkBehaviour
 
         if (!IsOwner)
         {
+            // Ensure remote instances do not have an active camera or audio listener
+            Camera remoteCam = GetComponentInChildren<Camera>(true);
+            if (remoteCam != null) remoteCam.enabled = false;
+            AudioListener remoteAl = GetComponentInChildren<AudioListener>(true);
+            if (remoteAl != null) remoteAl.enabled = false;
+
             return;
         }
 
@@ -44,12 +50,34 @@ public class NetworkTransformTest : NetworkBehaviour
         }
     }
 
+    private void Update()
+    {
+        if (!IsOwner || moveAction == null)
+        {
+            return;
+        }
+
+        Vector2 moveInput = moveAction.ReadValue<Vector2>();
+
+        Vector3 inputDirection = new(moveInput.x, 0f, moveInput.y);
+        if (inputDirection.sqrMagnitude < 0.001f)
+        {
+            MovePlayerServerRpc(Vector3.zero);
+            return;
+        }
+
+        MovePlayerServerRpc(inputDirection.normalized);
+    }
+
     private void ConfigureRigidbody()
     {
         if (playerRigidbody == null)
         {
             return;
         }
+
+        // playerRigidbody.constraints |= RigidbodyConstraints.FreezeRotationX | RigidbodyConstraints.FreezeRotationZ;
+        // playerRigidbody.angularVelocity = Vector3.zero;
 
         SetupContactMaterial();
     }
@@ -76,24 +104,7 @@ public class NetworkTransformTest : NetworkBehaviour
         moveAction.Enable();
     }
 
-    private void Update()
-    {
-        if (!IsOwner || moveAction == null)
-        {
-            return;
-        }
-
-        Vector2 moveInput = moveAction.ReadValue<Vector2>();
-
-        Vector3 inputDirection = new(moveInput.x, 0f, moveInput.y);
-        if (inputDirection.sqrMagnitude < 0.001f)
-        {
-            MovePlayerServerRpc(Vector3.zero);
-            return;
-        }
-
-        MovePlayerServerRpc(inputDirection.normalized);
-    }
+    
 
     private void FixedUpdate()
     {
@@ -102,6 +113,7 @@ public class NetworkTransformTest : NetworkBehaviour
             if (IsServer && playerRigidbody != null)
             {
                 playerRigidbody.linearVelocity = Vector3.zero;
+                playerRigidbody.angularVelocity = Vector3.zero;
             }
 
             return;
@@ -117,6 +129,7 @@ public class NetworkTransformTest : NetworkBehaviour
         desiredVelocity.y = 0f;
         playerRigidbody.MovePosition(playerRigidbody.position + desiredVelocity * Time.fixedDeltaTime);
 //        playerRigidbody.linearVelocity = desiredVelocity;
+        playerRigidbody.angularVelocity = Vector3.zero;
     }
 
     [Rpc(SendTo.Server)]

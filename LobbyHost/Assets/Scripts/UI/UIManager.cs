@@ -7,6 +7,8 @@ using UnityEngine.EventSystems;
 public class UIManager : MonoBehaviour
 {
     public TMP_Text readyButtonText;
+    public TMP_Text GameCodeText;
+
     public GameObject startButton;
     [SerializeField] private float enabledOpacity = 1f;
     [SerializeField] private float disabledOpacity = 0.35f;
@@ -24,6 +26,7 @@ public class UIManager : MonoBehaviour
             PlayersManager.Instance.Players.OnListChanged += OnPlayersListChanged;
         }
 
+        UpdateGameCodeText();
         UpdateReadyButtonText();
         UpdateStartButton();
     }
@@ -40,6 +43,19 @@ public class UIManager : MonoBehaviour
     {
         UpdateReadyButtonText();
         UpdateStartButton();
+    }
+
+    private void UpdateGameCodeText()
+    {
+        if (GameCodeText == null)
+        {
+            return;
+        }
+
+        string gameCode = TutorialManager.CurrentGameCode;
+        GameCodeText.text = string.IsNullOrWhiteSpace(gameCode)
+            ? "game code : \n"
+            : "game code : \n" + gameCode;
     }
 
     public void RefreshReadyButtonText()

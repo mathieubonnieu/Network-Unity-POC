@@ -12,6 +12,7 @@ public class TutorialManager : MonoBehaviour
 {
     private UnityTransport transport;
     public TMPro.TMP_InputField joinCodeInputField;
+    public static string CurrentGameCode;
 
     async void Awake()
     {
@@ -47,6 +48,7 @@ public class TutorialManager : MonoBehaviour
 
         Allocation allocation = await RelayService.Instance.CreateAllocationAsync(2);
         joinCodeInputField.text = await RelayService.Instance.GetJoinCodeAsync(allocation.AllocationId);
+        CurrentGameCode = joinCodeInputField.text;
         Debug.Log("code la room = " + joinCodeInputField.text);
 
         transport.SetRelayServerData(allocation.RelayServer.IpV4, (ushort)allocation.RelayServer.Port, allocation.AllocationIdBytes, allocation.Key, allocation.ConnectionData);
