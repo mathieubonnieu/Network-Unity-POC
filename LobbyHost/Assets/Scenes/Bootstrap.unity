@@ -185,7 +185,7 @@ MonoBehaviour:
   NetworkConfig:
     ProtocolVersion: 0
     NetworkTransport: {fileID: 74307278}
-    PlayerPrefab: {fileID: 8400314267475081131, guid: ee90d413049d458468097398fa2d9778, type: 3}
+    PlayerPrefab: {fileID: 8400314267475081131, guid: c5a03379a8298b84aaac263ef9d05d93, type: 3}
     Prefabs:
       NetworkPrefabsLists:
       - {fileID: 11400000, guid: 22365e85ac9f54091869f83fdb9cb4a0, type: 2}
@@ -283,7 +283,7 @@ MonoBehaviour:
   m_GameObject: {fileID: 251514898}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 1665d03de589f425fb44d64ac165193e, type: 3}
+  m_Script: {fileID: 11500000, guid: 776cb91202298a242b3ce023f2c204c8, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::BootstrapScene
 --- !u!4 &251514900
@@ -311,9 +311,9 @@ GameObject:
   m_Component:
   - component: {fileID: 451609871}
   - component: {fileID: 451609870}
-  - component: {fileID: 451609869}
-  - component: {fileID: 451609868}
   - component: {fileID: 451609867}
+  - component: {fileID: 451609868}
+  - component: {fileID: 451609869}
   m_Layer: 0
   m_Name: GlobalController
   m_TagString: Untagged
@@ -330,7 +330,7 @@ MonoBehaviour:
   m_GameObject: {fileID: 451609866}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 07de6e9adee9b4bc2972ac4092cd670e, type: 3}
+  m_Script: {fileID: 11500000, guid: 344f35bac7383ae419282a5360079fd7, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::EventController
 --- !u!114 &451609868
@@ -342,7 +342,7 @@ MonoBehaviour:
   m_GameObject: {fileID: 451609866}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: d472f1972b5e9411c9d7ff8cbb3a5eae, type: 3}
+  m_Script: {fileID: 11500000, guid: 3539ffa00c2cff7498054d6773ae2b78, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::InputController
 --- !u!114 &451609869
@@ -354,7 +354,7 @@ MonoBehaviour:
   m_GameObject: {fileID: 451609866}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 4e9a30a4c2826438192a06a1a070ac2b, type: 3}
+  m_Script: {fileID: 11500000, guid: 0a3895bd1f6ad4841aa8e457a3dbbdb3, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SceneController
 --- !u!114 &451609870
@@ -366,12 +366,12 @@ MonoBehaviour:
   m_GameObject: {fileID: 451609866}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: d8ffe0b5e60604edf8a564b0a7b0913b, type: 3}
+  m_Script: {fileID: 11500000, guid: 030d63cdf2d05d9468a322ad0e46f501, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::GlobalController
-  sceneController: {fileID: 451609869}
+  sceneController: {fileID: 451609867}
   inputController: {fileID: 451609868}
-  eventController: {fileID: 451609867}
+  eventController: {fileID: 451609869}
 --- !u!4 &451609871
 Transform:
   m_ObjectHideFlags: 0
@@ -417,7 +417,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d5a57f767e5e46a458fc5d3c628d0cbb, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Unity.Netcode.Runtime::Unity.Netcode.NetworkObject
-  GlobalObjectIdHash: 1253159162
+  GlobalObjectIdHash: 1599101039
   InScenePlacedSourceGlobalObjectIdHash: 0
   DeferredDespawnTick: 0
   Ownership: 1
@@ -439,7 +439,7 @@ MonoBehaviour:
   m_GameObject: {fileID: 1354639280}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 994502d6321cb421ca0b5ef7236be64b, type: 3}
+  m_Script: {fileID: 11500000, guid: e2c6cde45ba8b8b429d7b4435fb67edb, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PlayersManager
   ShowTopMostFoldoutHeaderGroup: 1

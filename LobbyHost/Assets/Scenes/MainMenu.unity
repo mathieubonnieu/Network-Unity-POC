@@ -723,7 +723,7 @@ MonoBehaviour:
   m_GameObject: {fileID: 585933601}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: b23589a19a8e3e547ae81750b0ffe557, type: 3}
+  m_Script: {fileID: 11500000, guid: 61c03ae5d923d63408a6426d6b2e600f, type: 3}
   m_Name: 
   m_EditorClassIdentifier: '::'
   joinCodeInputField: {fileID: 646540658}
@@ -2050,7 +2050,7 @@ MonoBehaviour:
   m_GameObject: {fileID: 1613996869}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: dd5b1c25f57d643308de191b61454a6c, type: 3}
+  m_Script: {fileID: 11500000, guid: 6f713b8f2837ede46af7fae9298ef4ed, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::MainMenuController
 --- !u!4 &1613996871

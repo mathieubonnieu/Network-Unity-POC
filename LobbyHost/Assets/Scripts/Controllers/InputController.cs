@@ -2,15 +2,31 @@ using UnityEngine;
 
 public class InputController : MonoBehaviour
 {
-    // Start is called once before the first execution of Update after the MonoBehaviour is created
-    void Start()
+    private InputSystem_Actions playerControls;
+
+    private void Awake()
     {
-        
+        playerControls = new InputSystem_Actions();
     }
 
-    // Update is called once per frame
-    void Update()
+    private void OnEnable()
     {
-        
+        playerControls.Enable();
     }
+
+    private void OnDisable()
+    {
+        playerControls.Disable();
+    }
+
+    public Vector2 GetPlayerMovement()
+    {
+        return playerControls.Player.Move.ReadValue<Vector2>();
+    }
+    public Vector2 GetMouseDelta()
+    {
+        return playerControls.Player.Rotation.ReadValue<Vector2>();
+    }
+
+    
 }
