@@ -2,35 +2,38 @@ using UnityEngine;
 
 public class TakableItem : MonoBehaviour
 {
-    [Header("Detection")]
-    [SerializeField] private float detectionRadius = 2f;
-    [SerializeField] private string playerTag = "Player";
-    [SerializeField] private LayerMask detectionLayers = ~0;
-
     [Header("Visual")]
-    [SerializeField] private Renderer targetRenderer;
-    [SerializeField] private Color nearColor = Color.yellow;
+    [SerializeField] private Renderer childRenderer;
 
-    private Material runtimeMaterial;
-    private Color defaultColor;
+
+    private ItemProximityDetector proximityDetector;
+    private bool childRendererDefaultEnabled = false;
     private bool isPlayerNearby;
+    
     private Collider[] cachedColliders;
     private bool[] cachedColliderStates;
 
+    public bool isChosen = false;
     public bool isTaken = false;
-    public float mass = 3f;
+    public float mass;
 
     private void Awake()
     {
-        if (targetRenderer == null)
+        if (childRenderer == null)
         {
-            targetRenderer = GetComponentInChildren<Renderer>();
+            childRenderer = FindChildRenderer();
         }
 
-        if (targetRenderer != null)
+        if (childRenderer != null)
         {
-            runtimeMaterial = targetRenderer.material;
-            defaultColor = runtimeMaterial.color;
+            childRendererDefaultEnabled = childRenderer.enabled;
+        }
+        childRenderer.enabled = false;
+
+        proximityDetector = GetComponent<ItemProximityDetector>();
+        if (proximityDetector == null)
+        {
+            proximityDetector = gameObject.AddComponent<ItemProximityDetector>();
         }
 
         cachedColliders = GetComponentsInChildren<Collider>(true);
@@ -41,47 +44,56 @@ public class TakableItem : MonoBehaviour
         }
     }
 
+    private void OnEnable()
+    {
+        if (proximityDetector == null)
+        {
+            proximityDetector = GetComponent<ItemProximityDetector>();
+        }
+
+        if (proximityDetector != null)
+        {
+            proximityDetector.PlayerNearbyChanged += OnPlayerNearbyChanged;
+            OnPlayerNearbyChanged(proximityDetector.IsPlayerNearby);
+        }
+    }
+
+    private void OnDisable()
+    {
+        if (proximityDetector != null)
+        {
+            proximityDetector.PlayerNearbyChanged -= OnPlayerNearbyChanged;
+        }
+    }
+
     private void Update()
     {
-        bool hasNearbyPlayer = HasNearbyPlayer();
+        // Recalculer la visibilité du child à chaque frame en fonction du nouvel état isChosen
+        UpdateChildVisibility();
+    }
+
+    private void UpdateChildVisibility()
+    {
+        bool shouldBeVisible = isPlayerNearby && !isTaken && isChosen;
+        SetChildVisibility(shouldBeVisible);
+    }
+
+    private void OnPlayerNearbyChanged(bool hasNearbyPlayer)
+    {
+        if (childRenderer == null)
+        {
+            return;
+        }
+
         if (hasNearbyPlayer == isPlayerNearby)
         {
             return;
         }
 
         isPlayerNearby = hasNearbyPlayer;
-        ApplyColor(isPlayerNearby && !isTaken ? nearColor : defaultColor);
     }
 
-    private bool HasNearbyPlayer()
-    {
-        Collider[] nearbyColliders = Physics.OverlapSphere(transform.position, detectionRadius, detectionLayers, QueryTriggerInteraction.Collide);
-        for (int i = 0; i < nearbyColliders.Length; i++)
-        {
-            if (nearbyColliders[i].CompareTag(playerTag))
-            {
-                return true;
-            }
-        }
 
-        return false;
-    }
-
-    private void ApplyColor(Color targetColor)
-    {
-        if (runtimeMaterial == null)
-        {
-            return;
-        }
-
-        runtimeMaterial.color = targetColor;
-    }
-
-    private void OnDrawGizmosSelected()
-    {
-        Gizmos.color = Color.cyan;
-        Gizmos.DrawWireSphere(transform.position, detectionRadius);
-    }
 
     public void SetHeldState(bool held)
     {
@@ -104,5 +116,26 @@ public class TakableItem : MonoBehaviour
 
             cachedColliders[i].enabled = held ? false : cachedColliderStates[i];
         }
+    }
+
+    private Renderer FindChildRenderer()
+    {
+        Renderer[] renderers = GetComponentsInChildren<Renderer>(true);
+        if (renderers.Length > 0)
+        {
+            return renderers[0];
+        }
+
+        return null;
+    }
+
+    private void SetChildVisibility(bool visible)
+    {
+        if (childRenderer == null)
+        {
+            return;
+        }
+
+        childRenderer.enabled = visible ? childRendererDefaultEnabled : false;
     }
 }

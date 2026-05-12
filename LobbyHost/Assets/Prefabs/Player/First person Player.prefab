@@ -678,7 +678,7 @@ GameObject:
   - component: {fileID: 971734140109181951}
   m_Layer: 0
   m_Name: First person Player
-  m_TagString: Untagged
+  m_TagString: Player
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -933,6 +933,7 @@ MonoBehaviour:
   carryMassSlowFactor: 0.12
   minSpeedMultiplier: 0.45
   playerContactMaterial: {fileID: 13400000, guid: cbb28c94f822a564eac68ce3b3e6e588, type: 2}
+  shouldFaceMoveDirection: 0
 --- !u!114 &4437979824115768121
 MonoBehaviour:
   m_ObjectHideFlags: 0

@@ -1,6 +1,7 @@
 using Unity.Netcode;
 using UnityEngine.InputSystem;
 using UnityEngine;
+using System.Collections.Generic;
 
 public class TakeItem : NetworkBehaviour // Utiliser NetworkBehaviour au lieu de MonoBehaviour
 {
@@ -12,6 +13,7 @@ public class TakeItem : NetworkBehaviour // Utiliser NetworkBehaviour au lieu de
     [SerializeField] private float pickupRadius = 3f;
     [SerializeField] private float throwStrength = 15f;
     [SerializeField] private float upwardForce = 2f; // Pour l'effet de parabole
+    [SerializeField] private float visionThreshold = 0.85f; // dot product threshold pour la vision
 
     private InputAction interactAction;
     private InputAction trajectoryAction;
@@ -31,11 +33,40 @@ public class TakeItem : NetworkBehaviour // Utiliser NetworkBehaviour au lieu de
     [Range(0.01f, 0.25f)]
     private float timeBetweenPoints = 0.1f;
 
-    // --- INITIALISATION ---
+    // Liste des items en range du player
+    private List<TakableItem> itemsInRange = new List<TakableItem>();
+    private TakableItem nearestItem;
+    private Collider pickupCollider;
+    private Vector3 lastPosition;
+    private Vector3 lastForward;
+
+    [Header("Recheck Settings")]
+    [SerializeField] private float moveRecheckDistance = 0.05f;
+    [SerializeField] private float rotateRecheckAngle = 2f;
 
     private void Awake()
     {
         movementController = GetComponent<NetworkTransformTest>();
+        
+        // Créer une SphereCollider DÉDIÉE en trigger pour la détection
+        // (séparée du collider de physique du player)
+        SphereCollider detectionCollider = gameObject.AddComponent<SphereCollider>();
+        detectionCollider.radius = pickupRadius;
+        detectionCollider.isTrigger = true;
+        detectionCollider.name = "PickupDetectionTrigger";
+        pickupCollider = detectionCollider;
+
+        lastPosition = transform.position;
+        lastForward = transform.forward;
+    }
+
+    public void SetPickupRange(float newRange)
+    {
+        pickupRadius = newRange;
+        if (pickupCollider is SphereCollider sphereCollider)
+        {
+            sphereCollider.radius = newRange;
+        }
     }
 
     public override void OnNetworkSpawn()
@@ -76,10 +107,18 @@ public class TakeItem : NetworkBehaviour // Utiliser NetworkBehaviour au lieu de
         {
             lineRenderer.enabled = false;
         }
+        
+        itemsInRange.Clear();
+        nearestItem = null;
     }
 
     private void Update()
     {
+        if (IsOwner && carriedItem == null && HasPlayerMovedOrRotated())
+        {
+            CalculateNearestItem();
+        }
+        
         // Seul celui qui possède le joueur voit la ligne de visée
         if (!IsOwner || carriedItem == null)
         {
@@ -87,7 +126,6 @@ public class TakeItem : NetworkBehaviour // Utiliser NetworkBehaviour au lieu de
             return;
         }
 
-        // Même logique que Interact: l'état est piloté par callbacks Input System
         if (isTrajectoryActive)
         {
             DrawProjection();
@@ -98,17 +136,31 @@ public class TakeItem : NetworkBehaviour // Utiliser NetworkBehaviour au lieu de
         }
     }
 
+    private bool HasPlayerMovedOrRotated()
+    {
+        float moveDelta = (transform.position - lastPosition).sqrMagnitude;
+        float moveThreshold = moveRecheckDistance * moveRecheckDistance;
+        bool hasMoved = moveDelta >= moveThreshold;
+
+        float angleDelta = Vector3.Angle(lastForward, transform.forward);
+        bool hasRotated = angleDelta >= rotateRecheckAngle;
+
+        if (!hasMoved && !hasRotated)
+        {
+            return false;
+        }
+
+        lastPosition = transform.position;
+        lastForward = transform.forward;
+        return true;
+    }
+
     private void DrawProjection()
     {
-        // Utilise exactement la même logique que ton ancien script
-        // Mais assure-toi d'utiliser 'throwStrength' et 'upwardForce' 
-        // pour que la ligne corresponde au futur lancer !
-
         lineRenderer.enabled = true;
         lineRenderer.positionCount = linePoints;
 
         Vector3 startPosition = releasePosition.position;
-        // On simule la force du lancer : (Forward * Strength) + (Up * UpwardForce)
         Vector3 simVelocity = (releasePosition.forward * throwStrength + Vector3.up * upwardForce) / carriedItem.GetComponent<Rigidbody>().mass;
 
         for (int i = 0; i < linePoints; i++)
@@ -123,18 +175,11 @@ public class TakeItem : NetworkBehaviour // Utiliser NetworkBehaviour au lieu de
     {
         if (carriedItem != null)
         {
-            // Si on porte déjà, on lance
             RequestDropServerRpc();
         }
-        else
+        else if (nearestItem != null)
         {
-            // Sinon, on cherche l'objet le plus proche
-            TakableItem nearest = FindNearestItem();
-            if (nearest != null)
-            {
-                // On demande au serveur de nous donner l'objet
-                RequestPickupServerRpc(nearest.GetComponent<NetworkObject>().NetworkObjectId);
-            }
+            RequestPickupServerRpc(nearestItem.GetComponent<NetworkObject>().NetworkObjectId);
         }
     }
 
@@ -151,8 +196,6 @@ public class TakeItem : NetworkBehaviour // Utiliser NetworkBehaviour au lieu de
             lineRenderer.enabled = false;
         }
     }
-
-    // --- LOGIQUE RAMASSAGE (SERVER SIDE) ---
 
     [ServerRpc]
     private void RequestPickupServerRpc(ulong networkObjectId)
@@ -173,44 +216,40 @@ public class TakeItem : NetworkBehaviour // Utiliser NetworkBehaviour au lieu de
         item.isTaken = true;
         item.SetHeldState(true);
 
+        if (itemsInRange.Contains(item))
+        {
+            itemsInRange.Remove(item);
+            CalculateNearestItem();
+        }
+
         NetworkObject itemNetObj = item.GetComponent<NetworkObject>();
-        // On prend le transform du script actuel (qui est sur la racine du joueur avec le NetworkObject)
         Transform playerRoot = this.transform;
 
         Rigidbody rb = item.GetComponent<Rigidbody>();
         if (rb != null)
         {
             rb.mass = item.mass;
-            rb.mass = item.mass; // Appliquer la masse de l'objet
             rb.isKinematic = true;
             rb.useGravity = false;
             rb.linearVelocity = Vector3.zero;
             rb.angularVelocity = Vector3.zero;
         }
 
-        // Place d'abord l'objet en main en world-space, puis parente en conservant la pose world.
         item.transform.SetPositionAndRotation(itemSpot.position, itemSpot.rotation);
 
-        // On utilise playerRoot au lieu de itemSpot
         itemNetObj.TrySetParent(playerRoot, true);
 
-        // Ajuste l'ancrage local pour qu'il colle exactement au point de main.
         item.transform.localPosition = playerRoot.InverseTransformPoint(itemSpot.position);
         item.transform.localRotation = Quaternion.Inverse(playerRoot.rotation) * itemSpot.rotation;
 
         ApplyCarryMass(item.mass);
-
         NotifyClientPickupClientRpc(itemNetObj.NetworkObjectId);
     }
-
-    // --- LOGIQUE LANCER (SERVER SIDE) ---
 
     [ServerRpc]
     private void RequestDropServerRpc()
     {
         if (carriedItem == null) return;
-
-        // On retire le parent
         carriedItem.GetComponent<NetworkObject>().TryRemoveParent(true);
 
         Rigidbody rb = carriedItem.GetComponent<Rigidbody>();
@@ -221,24 +260,26 @@ public class TakeItem : NetworkBehaviour // Utiliser NetworkBehaviour au lieu de
 
             carriedItem.transform.SetPositionAndRotation(releasePosition.position, releasePosition.rotation);
 
-            // CALCUL DU LANCER (Moving Out Style)
-            // On prend l'avant du joueur + un peu de hauteur
             Vector3 forceDir = releasePosition.forward * throwStrength + Vector3.up * upwardForce;
-
             rb.AddForce(forceDir, ForceMode.Impulse);
-
-            // Rotation aléatoire pour le côté chaotique
             rb.AddTorque(Random.insideUnitSphere * 10f, ForceMode.Impulse);
         }
 
         carriedItem.isTaken = false;
+        carriedItem.isChosen = false;
         carriedItem.SetHeldState(false);
+        
+        float distance = Vector3.Distance(transform.position, carriedItem.transform.position);
+        if (distance <= pickupRadius && !itemsInRange.Contains(carriedItem))
+        {
+            itemsInRange.Add(carriedItem);
+            CalculateNearestItem();
+        }
+        
         ApplyCarryMass(0f);
         NotifyClientDropClientRpc();
         carriedItem = null;
     }
-
-    // --- SYNCHRONISATION DES VARIABLES LOCALES ---
 
     [ClientRpc]
     private void NotifyClientPickupClientRpc(ulong id)
@@ -268,26 +309,65 @@ public class TakeItem : NetworkBehaviour // Utiliser NetworkBehaviour au lieu de
         {
             return;
         }
-
         movementController.SetCarriedMass(mass);
     }
 
-    private TakableItem FindNearestItem()
+    private void OnTriggerEnter(Collider collision)
     {
-        TakableItem[] items = FindObjectsByType<TakableItem>(FindObjectsSortMode.None);
-        TakableItem nearestItem = null;
-        float bestDistanceSqr = pickupRadius * pickupRadius;
+        if (!IsOwner) return;
 
-        foreach (var item in items)
+        TakableItem item = collision.GetComponent<TakableItem>();
+        if (item != null && !item.isTaken && !itemsInRange.Contains(item))
         {
-            if (item.isTaken) continue;
-            float distSqr = (item.transform.position - transform.position).sqrMagnitude;
-            if (distSqr < bestDistanceSqr)
+            itemsInRange.Add(item);
+            CalculateNearestItem();
+        }
+    }
+
+    private void OnTriggerExit(Collider collision)
+    {
+        if (!IsOwner) return;
+
+        TakableItem item = collision.GetComponent<TakableItem>();
+        if (item != null && itemsInRange.Contains(item))
+        {
+            itemsInRange.Remove(item);
+            if (nearestItem == item)
             {
-                bestDistanceSqr = distSqr;
+                nearestItem.isChosen = false;
+            }
+            CalculateNearestItem();
+        }
+    }
+
+    private void CalculateNearestItem()
+    {
+        TakableItem previousNearestItem = nearestItem;
+        nearestItem = null;
+        float bestDot = visionThreshold;
+
+        foreach (var item in itemsInRange)
+        {
+            if (item.isTaken)
+                continue;
+            Vector3 direction = (item.transform.position - transform.position).normalized;
+            float dot = Vector3.Dot(direction, transform.forward);
+
+            if (dot >= bestDot)
+            {
+                bestDot = dot;
                 nearestItem = item;
             }
         }
-        return nearestItem;
+
+        if (previousNearestItem != null && previousNearestItem != nearestItem)
+        {
+            previousNearestItem.isChosen = false;
+        }
+
+        if (nearestItem != null)
+        {
+            nearestItem.isChosen = true;
+        }
     }
 }

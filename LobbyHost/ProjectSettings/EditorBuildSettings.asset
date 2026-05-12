@@ -17,6 +17,12 @@ EditorBuildSettings:
   - enabled: 1
     path: Assets/Scenes/SceneGame_0.unity
     guid: ba03358dc5efa4a1c93443f3c23b2dd6
+  - enabled: 1
+    path: Assets/Scenes/SceneGame_Cam.unity
+    guid: 4cbd133e98e25864590a881f5179d29c
+  - enabled: 1
+    path: Assets/Scenes/SceneGame_Cam Follow.unity
+    guid: a5d9e37312bc92a42aed8a0c9196e081
   m_configObjects:
     com.unity.input.settings.actions: {fileID: -944628639613478452, guid: 052faaac586de48259a63d0c4782560b, type: 3}
   m_UseUCBPForAssetBundles: 0

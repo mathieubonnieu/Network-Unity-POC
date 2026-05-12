@@ -336,7 +336,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!4 &4979796251625442301
 Transform:
   m_ObjectHideFlags: 0
@@ -574,9 +574,8 @@ GameObject:
   - component: {fileID: 8306534850991558941}
   - component: {fileID: 2266125298469065679}
   - component: {fileID: 5180206419126905988}
-  - component: {fileID: 6322621261988323446}
   m_Layer: 0
-  m_Name: TPS Player
+  m_Name: FarView Player
   m_TagString: Player
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -746,7 +745,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d5a57f767e5e46a458fc5d3c628d0cbb, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Unity.Netcode.Runtime::Unity.Netcode.NetworkObject
-  GlobalObjectIdHash: 1359954900
+  GlobalObjectIdHash: 3599270916
   InScenePlacedSourceGlobalObjectIdHash: 2427682626
   DeferredDespawnTick: 0
   Ownership: 1
@@ -856,21 +855,8 @@ MonoBehaviour:
   pickupRadius: 2
   throwStrength: 10
   upwardForce: 2
+  visionThreshold: 0.85
   lineRenderer: {fileID: 1440391830215593859}
   releasePosition: {fileID: 4189205857585402754}
   linePoints: 25
   timeBetweenPoints: 0.1
---- !u!114 &6322621261988323446
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 8400314267475081131}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 0ee48eab3115acf4bad7d962e1af80e4, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::PlayerCameraController
-  cameraTransform: {fileID: 4979796251625442301}
-  manageCinemachine: 1

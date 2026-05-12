@@ -17,6 +17,8 @@ public class NetworkTransformTest : NetworkBehaviour
     private float carriedMass;
     private Vector3 serverMoveDirection;
 
+    [SerializeField] private bool shouldFaceMoveDirection = false;
+
     private void Awake()
     {
         playerRigidbody = GetComponent<Rigidbody>();
@@ -29,13 +31,19 @@ public class NetworkTransformTest : NetworkBehaviour
 
         if (!IsOwner)
         {
-            // Ensure remote instances do not have an active camera or audio listener
-            Camera remoteCam = GetComponentInChildren<Camera>(true);
-            if (remoteCam != null) remoteCam.enabled = false;
-            AudioListener remoteAl = GetComponentInChildren<AudioListener>(true);
-            if (remoteAl != null) remoteAl.enabled = false;
+            var camCtrl = GetComponentInChildren<PlayerCameraController>(true);
+            if (camCtrl != null)
+            {
+                camCtrl.DisableForRemote();
+            }
 
             return;
+        }
+        // For owner: delegate camera activation to PlayerCameraController if present
+        var cameraController = GetComponentInChildren<PlayerCameraController>(true);
+        if (cameraController != null)
+        {
+            cameraController.SetupForOwner();
         }
 
         InitializeInputAction();
@@ -66,7 +74,36 @@ public class NetworkTransformTest : NetworkBehaviour
             return;
         }
 
-        MovePlayerServerRpc(inputDirection.normalized);
+        Vector3 moveDirection = inputDirection.normalized;
+        Transform camTransform = null;
+        var camCtrl = GetComponentInChildren<PlayerCameraController>(true);
+        if (camCtrl != null)
+        {
+            camTransform = camCtrl.CameraTransform;
+        }
+        if (camTransform == null)
+        {
+            var ownerCam = GetComponentInChildren<Camera>(true);
+            if (ownerCam != null) camTransform = ownerCam.transform;
+        }
+
+        if (camTransform != null)
+        {
+            Vector3 forward = camTransform.forward;
+            Vector3 right = camTransform.right;
+            forward.y = 0f;
+            right.y = 0f;
+            forward.Normalize();
+            right.Normalize();
+
+            moveDirection = right * inputDirection.x + forward * inputDirection.z;
+            if (moveDirection.sqrMagnitude > 0.001f)
+            {
+                moveDirection.Normalize();
+            }
+        }
+
+        MovePlayerServerRpc(moveDirection);
     }
 
     private void ConfigureRigidbody()
@@ -76,8 +113,8 @@ public class NetworkTransformTest : NetworkBehaviour
             return;
         }
 
+        playerRigidbody.isKinematic = false;  // Allow gravity and physics
         // playerRigidbody.constraints |= RigidbodyConstraints.FreezeRotationX | RigidbodyConstraints.FreezeRotationZ;
-        // playerRigidbody.angularVelocity = Vector3.zero;
 
         SetupContactMaterial();
     }
@@ -90,6 +127,32 @@ public class NetworkTransformTest : NetworkBehaviour
         }
 
         playerCollider.material = playerContactMaterial;
+    }
+
+    private void DisableLocalViewComponents()
+    {
+        Camera[] cameras = GetComponentsInChildren<Camera>(true);
+        for (int i = 0; i < cameras.Length; i++)
+        {
+            cameras[i].enabled = false;
+        }
+
+        AudioListener[] audioListeners = GetComponentsInChildren<AudioListener>(true);
+        for (int i = 0; i < audioListeners.Length; i++)
+        {
+            audioListeners[i].enabled = false;
+        }
+
+        // Disable Cinemachine components for remote players
+        MonoBehaviour[] cinemachineComponents = GetComponentsInChildren<MonoBehaviour>(true);
+        for (int i = 0; i < cinemachineComponents.Length; i++)
+        {
+            MonoBehaviour component = cinemachineComponents[i];
+            if (component != null && (component.GetType().Name == "CinemachineBrain" || component.GetType().Name == "CinemachineCamera"))
+            {
+                component.enabled = false;
+            }
+        }
     }
 
     private void InitializeInputAction()
@@ -112,24 +175,29 @@ public class NetworkTransformTest : NetworkBehaviour
         {
             if (IsServer && playerRigidbody != null)
             {
-                playerRigidbody.linearVelocity = Vector3.zero;
+                // Zero horizontal velocity but preserve vertical (gravity)
+                playerRigidbody.linearVelocity = new Vector3(0, playerRigidbody.linearVelocity.y, 0);
                 playerRigidbody.angularVelocity = Vector3.zero;
             }
 
             return;
         }
 
-        Quaternion targetRotation = Quaternion.LookRotation(serverMoveDirection, Vector3.up);
-        playerRigidbody.MoveRotation(Quaternion.Slerp(playerRigidbody.rotation, targetRotation, turnSpeed * Time.fixedDeltaTime));
-
         float speedMultiplier = 1f / (1f + carriedMass * carryMassSlowFactor);
         speedMultiplier = Mathf.Max(minSpeedMultiplier, speedMultiplier);
 
-        Vector3 desiredVelocity = serverMoveDirection * (moveSpeed * speedMultiplier);
-        desiredVelocity.y = 0f;
-        playerRigidbody.MovePosition(playerRigidbody.position + desiredVelocity * Time.fixedDeltaTime);
-//        playerRigidbody.linearVelocity = desiredVelocity;
-        playerRigidbody.angularVelocity = Vector3.zero;
+        Vector3 moveDirection = serverMoveDirection;
+        Vector3 horizontalVelocity = moveDirection * moveSpeed * speedMultiplier;
+        
+        // Apply velocity: horizontal movement + preserve vertical (gravity)
+        Vector3 newVelocity = new Vector3(horizontalVelocity.x, playerRigidbody.linearVelocity.y, horizontalVelocity.z);
+        playerRigidbody.linearVelocity = newVelocity;
+
+        if(shouldFaceMoveDirection && moveDirection.sqrMagnitude > 0.001f)
+        {
+            Quaternion toRotation = Quaternion.LookRotation(moveDirection, Vector3.up);
+            playerRigidbody.rotation = Quaternion.Slerp(playerRigidbody.rotation, toRotation, turnSpeed * Time.fixedDeltaTime);
+        }
     }
 
     [Rpc(SendTo.Server)]

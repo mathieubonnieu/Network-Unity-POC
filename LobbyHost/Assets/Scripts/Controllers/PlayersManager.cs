@@ -273,7 +273,7 @@ public class PlayersManager : NetworkBehaviour
         {
             if (AreAllPlayersReady())
             {
-                NetworkManager.Singleton.SceneManager.LoadScene("SceneGame_0", LoadSceneMode.Single);
+                NetworkManager.Singleton.SceneManager.LoadScene("SceneGame_Cam Follow", LoadSceneMode.Single);
             }
             else
             {
