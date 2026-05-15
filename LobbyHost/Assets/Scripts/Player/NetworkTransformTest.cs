@@ -11,6 +11,7 @@ public class NetworkTransformTest : NetworkBehaviour
     [SerializeField] private float minSpeedMultiplier = 0.45f;
     [SerializeField] private PhysicsMaterial playerContactMaterial;
 
+    
     private InputAction moveAction;
     private Rigidbody playerRigidbody;
     private CapsuleCollider playerCollider;

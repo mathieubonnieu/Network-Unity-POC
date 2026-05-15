@@ -13,7 +13,7 @@ public class TakeItem : NetworkBehaviour // Utiliser NetworkBehaviour au lieu de
     [SerializeField] private float pickupRadius = 3f;
     [SerializeField] private float throwStrength = 15f;
     [SerializeField] private float upwardForce = 2f; // Pour l'effet de parabole
-    [SerializeField] private float visionThreshold = 0.85f; // dot product threshold pour la vision
+    [SerializeField] private float visionThreshold = 0.85f;
 
     private InputAction interactAction;
     private InputAction trajectoryAction;
@@ -44,9 +44,13 @@ public class TakeItem : NetworkBehaviour // Utiliser NetworkBehaviour au lieu de
     [SerializeField] private float moveRecheckDistance = 0.05f;
     [SerializeField] private float rotateRecheckAngle = 2f;
 
+    [Header("Status")]
+    public bool isStuned = true;
+    public StatusEffects currentPlayerEffects;
     private void Awake()
     {
         movementController = GetComponent<NetworkTransformTest>();
+        currentPlayerEffects = GetComponent<StatusEffects>();
         
         // Créer une SphereCollider DÉDIÉE en trigger pour la détection
         // (séparée du collider de physique du player)
@@ -202,6 +206,7 @@ public class TakeItem : NetworkBehaviour // Utiliser NetworkBehaviour au lieu de
     {
         if (NetworkManager.Singleton.SpawnManager.SpawnedObjects.TryGetValue(networkObjectId, out NetworkObject targetNetObj))
         {
+            if(currentPlayerEffects.isStuned()) return;
             TakableItem item = targetNetObj.GetComponent<TakableItem>();
             if (item != null && !item.isTaken)
             {
