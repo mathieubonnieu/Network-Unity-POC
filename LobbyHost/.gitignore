@@ -17,7 +17,6 @@
 *.log
 
 # Generated files
-*.meta
 .DS_Store
 .vsconfig
 
